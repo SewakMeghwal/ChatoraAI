@@ -1,0 +1,11 @@
+Model Information:
+* title:	Barbie Deluxe Style Doll
+* source:	https://sketchfab.com/3d-models/barbie-deluxe-style-doll-0bb5ccc94efc4424b40f703c6d1810cb
+* author:	Drothari (https://sketchfab.com/Drothari)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Barbie Deluxe Style Doll" (https://sketchfab.com/3d-models/barbie-deluxe-style-doll-0bb5ccc94efc4424b40f703c6d1810cb) by Drothari (https://sketchfab.com/Drothari) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

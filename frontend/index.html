@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chatbot🐱</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="assets/cat.png" />
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  
+  <!-- Emoji Picker -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+</head>
+<body>
+  <div class="main-container">
+    <!-- Avatar Section -->
+    <div class="avatar-section">
+      <div id="avatar-container"></div>
+    </div>
+
+    <!-- Chat Section -->
+    <div class="chat-section">
+      <h1>Chat With Mue 🐱</h1>
+      
+      <!-- Chat Box -->
+      <div id="chat-box"></div>
+
+      <!-- Input Area -->
+      <div class="input-area">
+        <input type="text" id="user-input" placeholder="Type your message..." />
+        <button id="emoji-btn">😊</button>
+        <button id="send-btn">Send</button>
+      </div>
+
+      <!-- Emoji Picker -->
+      <emoji-picker id="emoji-picker" style="display:none;"></emoji-picker>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
