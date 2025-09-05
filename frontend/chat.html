@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChatoraAI Chat</title>
+
+  <!-- Emoji Picker CSS (Fixed CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1.19.0/index.css" />
+
+  <style>
+    /* General Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #f1f3f6;
+    }
+
+    /* Navbar */
+    .navbar {
+      height: 60px;
+      background-color: #1f1f1f;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .logo {
+      font-size: 1.3rem;
+    }
+
+    .nav-buttons .btn {
+      padding: 8px 15px;
+      border: none;
+      background: #3a86ff;
+      color: white;
+      border-radius: 5px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+
+    .nav-buttons .btn:hover {
+      background: #265fbb;
+    }
+
+    .btn-danger {
+      background: #ff4b5c !important;
+    }
+
+    /* Main Layout */
+    .container {
+      display: flex;
+      height: calc(100vh - 60px);
+    }
+
+    /* Left Panel (3D Model) */
+    .left-panel {
+      flex: 1;
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #avatar-container {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Right Panel (Chat UI) */
+    .right-panel {
+      flex: 1.2;
+      background-color: #f8f9fa;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+    }
+
+    /* Chat Box */
+    .chat-box {
+      flex: 1;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      overflow-y: auto;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .user-msg {
+      text-align: right;
+      color: white;
+      background: #3a86ff;
+      padding: 10px;
+      margin: 5px 0;
+      display: inline-block;
+      border-radius: 10px 10px 0 10px;
+      max-width: 70%;
+    }
+
+    .bot-msg {
+      text-align: left;
+      color: white;
+      background: #6c757d;
+      padding: 10px;
+      margin: 5px 0;
+      display: inline-block;
+      border-radius: 10px 10px 10px 0;
+      max-width: 70%;
+    }
+
+    /* Chat Input */
+    .chat-input {
+      display: flex;
+      margin-top: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .chat-input input {
+      flex: 1;
+      border: none;
+      padding: 10px;
+      outline: none;
+      font-size: 1rem;
+    }
+
+    .emoji-btn, .send-btn {
+      padding: 10px 15px;
+      border: none;
+      background: #3a86ff;
+      color: white;
+      margin-left: 8px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    .emoji-btn:hover, .send-btn:hover {
+      background: #265fbb;
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Navbar -->
+  <nav class="navbar">
+    <h2 class="logo">🤖 ChatoraAI</h2>
+    <div class="nav-buttons">
+      <button id="profile-btn" class="btn">Profile</button>
+      <button id="logout-btn" class="btn btn-danger">Logout</button>
+    </div>
+  </nav>
+
+  <!-- Main Layout -->
+  <div class="container">
+    <!-- Left: 3D Avatar -->
+    <div class="left-panel">
+      <div id="avatar-container"></div>
+    </div>
+
+    <!-- Right: Chat Section -->
+    <div class="right-panel">
+      <div id="chat-box" class="chat-box"></div>
+      <div class="chat-input">
+        <button id="emoji-btn" class="emoji-btn">😊</button>
+        <input id="user-input" type="text" placeholder="Type your message..." />
+        <button id="send-btn" class="send-btn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.150.1/build/three.module.js";
+    import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.150.1/examples/jsm/loaders/GLTFLoader.js";
+
+    const API_URL = "http://127.0.0.1:8000/chat";
+
+    const chatBox = document.getElementById("chat-box");
+    const userInput = document.getElementById("user-input");
+    const sendBtn = document.getElementById("send-btn");
+
+    function appendMessage(sender, message) {
+      const msg = document.createElement("div");
+      msg.classList.add(sender === "user" ? "user-msg" : "bot-msg");
+      msg.textContent = message;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function sendMessage() {
+      const message = userInput.value.trim();
+      if (!message) return;
+
+      appendMessage("user", message);
+      userInput.value = "";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch response from server");
+        }
+
+        const data = await response.json();
+        appendMessage("bot", data.reply);
+      } catch (error) {
+        appendMessage("bot", "⚠️ Error connecting to server.");
+        console.error("Error:", error);
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    userInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    // === THREE.JS 3D AVATAR ===
+    const avatarContainer = document.getElementById("avatar-container");
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(
+      70,
+      avatarContainer.clientWidth / avatarContainer.clientHeight,
+      0.1,
+      1000
+    );
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(avatarContainer.clientWidth, avatarContainer.clientHeight);
+    avatarContainer.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+    scene.add(ambientLight);
+
+    const pointLight = new THREE.PointLight(0xffffff, 1);
+    pointLight.position.set(5, 5, 5);
+    scene.add(pointLight);
+
+    const loader = new GLTFLoader();
+    loader.load(
+      "assets/barbie_deluxe_style_doll.glb",
+      (gltf) => {
+        const model = gltf.scene;
+        model.scale.set(0.8, 0.8, 0.8);
+        model.position.set(0, -1.2, 0);
+        scene.add(model);
+
+        camera.position.z = 4;
+
+        function animate() {
+          requestAnimationFrame(animate);
+          model.rotation.y += 0.01;
+          renderer.render(scene, camera);
+        }
+        animate();
+      },
+      undefined,
+      (error) => console.error("Error loading avatar model:", error)
+    );
+  </script>
+</body>
+</html>

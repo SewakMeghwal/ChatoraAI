@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Login - ChatoraAI</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="container">
+    <div class="header"><div class="brand">ChatoraAI 🤖</div></div>
+    <div class="panel" style="max-width:520px;margin:0 auto">
+      <h3>Login</h3>
+      <input id="email" type="email" placeholder="Email" />
+      <input id="password" type="password" placeholder="Password" />
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="loginBtn" class="btn-primary">Login</button>
+      </div>
+      <p class="small" style="margin-top:10px">Don't have an account? <a href="signup.html" class="link">Signup</a></p>
+      <p class="small">Or <a href="chat.html?guest=true" class="link">continue as guest</a></p>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+    function saveAuth(token, user){ localStorage.setItem('chatora_token', token); localStorage.setItem('chatora_user', JSON.stringify(user)); }
+    document.getElementById('loginBtn').addEventListener('click', async ()=>{
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      if(!email||!password){ alert('Fill all'); return; }
+      try{
+        const res = await fetch(`${API_BASE}/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({email,password}) });
+        const data = await res.json();
+        if(!res.ok){ alert(data.detail || 'Login failed'); return; }
+        saveAuth(data.token, data.user || {name:data.user?.name || data.user?.username, email});
+        window.location.href = 'chat.html';
+      }catch(e){ alert('Network error'); console.error(e) }
+    });
+
+    // restore theme
+    const s = localStorage.getItem('chatora_theme') || 'dark';
+    if(s==='light') document.body.classList.add('light');
+  </script>
+</body>
+</html>

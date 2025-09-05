@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Signup - ChatoraAI</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <div class="container">
+    <div class="header"><div class="brand">ChatoraAI 🤖</div></div>
+    <div class="panel" style="max-width:520px;margin:0 auto">
+      <h3>Create account</h3>
+      <input id="name" type="text" placeholder="Name (optional)" />
+      <input id="email" type="email" placeholder="Email" />
+      <input id="password" type="password" placeholder="Password" />
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="signupBtn" class="btn-primary">Create</button>
+      </div>
+      <p class="small" style="margin-top:10px">Already have account? <a href="login.html" class="link">Login</a></p>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+    document.getElementById('signupBtn').addEventListener('click', async ()=>{
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      if(!email || !password){ alert('Provide email & password'); return; }
+      try{
+        const res = await fetch(`${API_BASE}/signup`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name,email,password}) });
+        const data = await res.json();
+        if(!res.ok){ alert(data.detail || 'Signup failed'); return; }
+        alert('Account created. Please login.');
+        window.location.href = 'login.html';
+      }catch(e){ alert('Network error'); console.error(e) }
+    });
+
+    // restore theme
+    const s = localStorage.getItem('chatora_theme') || 'dark';
+    if(s==='light') document.body.classList.add('light');
+  </script>
+</body>
+</html>
