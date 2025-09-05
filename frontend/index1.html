@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ChatoraAI — Chat</title>
+
+  <!-- Three.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
+  <!-- Emoji Picker -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+
+  <style>
+    :root{
+      --bg:#0d1117; --panel:#161b22; --accent:#00eaff; --muted:#94a3b8; --text:#ffffff;
+      --light-bg:#f5f7fb; --light-panel:#ffffff; --light-text:#0b1220; --light-accent:#0077cc;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:Inter,system-ui,Arial,Helvetica,sans-serif;
+      background:var(--bg); color:var(--text); min-height:100vh;
+      transition:background .25s,color .25s;
+    }
+    /* top nav */
+    .topbar{
+      position:fixed; top:12px; right:18px; z-index:60; display:flex; gap:10px; align-items:center;
+    }
+    .theme-toggle{
+      width:44px;height:44px;border-radius:50%;border:1px solid var(--accent); background:#111;
+      color:var(--accent); font-size:20px; cursor:pointer; display:inline-flex;align-items:center;justify-content:center;
+    }
+    .container{
+      display:flex; gap:20px; width:95%; max-width:1200px; margin:70px auto 40px; align-items:stretch;
+    }
+    .left, .right { border-radius:14px; padding:18px; box-shadow:0 8px 30px rgba(0,0,0,.3); }
+    .left{flex:1; min-width:300px; background:var(--panel); display:flex; flex-direction:column; align-items:center;}
+    .right{flex:1.4; min-width:360px; background:var(--panel); display:flex; flex-direction:column;}
+    header.appbar{display:flex; align-items:center; gap:14px;}
+    .brand{font-weight:700;color:var(--accent); font-size:20px}
+    nav{margin-left:auto; display:flex; gap:10px; align-items:center;}
+    nav button{background:transparent;border:1px solid transparent;color:var(--muted); padding:8px 12px;border-radius:10px;cursor:pointer;}
+    nav button.active{color:var(--accent); border-color:rgba(0,234,255,.12)}
+    /* Chat area */
+    #chat-box{flex:1; overflow:auto; padding:12px; border-radius:10px; border:1px solid var(--accent); background:var(--bg);}
+    .msg{margin-bottom:10px; white-space:pre-wrap}
+    .user-msg{color:var(--accent)}
+    .bot-msg{color:#ffcc70}
+    .input-area{display:flex; gap:8px; margin-top:12px}
+    input[type="text"]{flex:1;padding:10px;border-radius:10px;border:none;outline:none;background:#0b1115;color:var(--text)}
+    button.icon{padding:8px 10px;border-radius:10px;border:1px solid var(--accent);background:transparent;color:var(--accent);cursor:pointer}
+    button.primary{background:var(--accent); color:black; border:none; padding:10px 14px;border-radius:10px;cursor:pointer}
+    /* small screens */
+    @media (max-width:900px){
+      .container{flex-direction:column; margin:80px 12px}
+      .topbar{right:12px; top:8px}
+    }
+    /* About/Profile/Login sections hidden by JS; simple styling */
+    .panel-title{font-size:18px;margin-bottom:8px;color:var(--accent)}
+    /* light theme */
+    body.light { background:var(--light-bg); color:var(--light-text) }
+    body.light .left, body.light .right{ background:var(--light-panel); box-shadow:0 6px 20px rgba(2,6,23,.06) }
+    body.light #chat-box{ background:#f7f9fb; border-color:var(--light-accent) }
+    body.light .theme-toggle{ background: white; color: var(--light-accent); border-color:var(--light-accent) }
+    /* small UI */
+    .small-muted{font-size:13px;color:var(--muted)}
+    .avatar-box{width:100%;height:350px;display:flex;align-items:center;justify-content:center}
+    #avatar-container{width:100%;height:100%}
+    .nav-right{display:flex;gap:8px;align-items:center}
+    .profile-info{padding:10px;border-radius:10px;background:rgba(0,0,0,0.06);margin-top:8px}
+    /* modals */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:80}
+    .modal{width:360px;background:var(--panel);padding:18px;border-radius:12px}
+    .modal h3{margin:0 0 10px;color:var(--accent)}
+    .form-row{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+    .form-row input{padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,.06);background:transparent;color:var(--text)}
+    .small-link{font-size:13px;color:var(--accent);cursor:pointer}
+    .hidden{display:none}
+  </style>
+</head>
+<body>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="theme-toggle" id="themeToggle" title="Toggle theme">🌙</button>
+  </div>
+
+  <!-- APP -->
+  <div class="container" id="app">
+    <!-- LEFT: Avatar + About / small info -->
+    <div class="left">
+      <div class="appbar" style="width:100%">
+        <div class="brand">ChatoraAI 🤖</div>
+        <nav id="nav">
+          <button data-view="home" class="active">Home</button>
+          <button data-view="about">About</button>
+          <button data-view="profile">Profile</button>
+        </nav>
+        <div class="nav-right" style="margin-left:auto">
+          <div id="auth-controls">
+            <!-- will be replaced by Login / Signup / Logout -->
+            <button id="openLogin" class="icon">Login</button>
+            <button id="openSignup" class="icon">Signup</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:100%;margin-top:14px">
+        <div class="avatar-box">
+          <div id="avatar-container"></div>
+        </div>
+
+        <div style="width:100%;margin-top:12px;padding:8px">
+          <div class="panel-title">About ChatoraAI</div>
+          <div class="small-muted">A friendly AI assistant built by Sewak. Speak, type, or use emojis to chat.</div>
+
+          <div class="panel-title" style="margin-top:12px">Quick Info</div>
+          <div class="small-muted">Logged in as: <span id="currentUser">Guest</span></div>
+          <div id="profileSnippet" class="profile-info hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Views -->
+    <div class="right">
+      <!-- HOME / CHAT -->
+      <div id="view-home" class="view">
+        <h2 class="panel-title">Chat</h2>
+        <div id="chat-box"></div>
+        <div class="input-area" style="margin-top:10px">
+          <input id="user-input" type="text" placeholder="Type or speak..." />
+          <button id="emoji-btn" class="icon">😊</button>
+          <emoji-picker id="emoji-picker" style="display:none; position:absolute; z-index:70;"></emoji-picker>
+          <button id="voice-btn" class="icon" title="Start voice / Stop when speaking">🎤</button>
+          <button id="send-btn" class="primary">Send</button>
+        </div>
+      </div>
+
+      <!-- ABOUT -->
+      <div id="view-about" class="view hidden">
+        <h2 class="panel-title">About</h2>
+        <p class="small-muted">ChatoraAI is an intelligent chat assistant using Cohere on the backend. This demo shows authentication, persistence, voice input/output, an avatar and theme support.</p>
+        <p class="small-muted">Features: chat, voice, emoji, theme, profile, login/signup.</p>
+      </div>
+
+      <!-- PROFILE -->
+      <div id="view-profile" class="view hidden">
+        <h2 class="panel-title">Profile</h2>
+        <div id="profileContent">
+          <p class="small-muted">You are not logged in.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOGIN Modal -->
+  <div id="modal-login" class="modal-backdrop hidden">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3>Login</h3>
+      <div class="form-row"><label>Email</label><input id="login-email" type="email" /></div>
+      <div class="form-row"><label>Password</label><input id="login-password" type="password" /></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="loginCancel" class="icon">Cancel</button>
+        <button id="loginSubmit" class="primary">Login</button>
+      </div>
+      <div style="margin-top:8px;font-size:13px">Don't have an account? <span id="toSignup" class="small-link">Signup</span></div>
+    </div>
+  </div>
+
+  <!-- SIGNUP Modal -->
+  <div id="modal-signup" class="modal-backdrop hidden">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3>Signup</h3>
+      <div class="form-row"><label>Username</label><input id="signup-username" /></div>
+      <div class="form-row"><label>Email</label><input id="signup-email" type="email" /></div>
+      <div class="form-row"><label>Password</label><input id="signup-password" type="password" /></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button id="signupCancel" class="icon">Cancel</button>
+        <button id="signupSubmit" class="primary">Create account</button>
+      </div>
+      <div style="margin-top:8px;font-size:13px">Already have an account? <span id="toLogin" class="small-link">Login</span></div>
+    </div>
+  </div>
+
+  <script>
+    /******************************
+     * Configuration
+     ******************************/
+    const API_BASE = "http://127.0.0.1:8000"; // change if your backend is elsewhere
+    const AUTH_SIGNUP = `${API_BASE}/auth/signup`;
+    const AUTH_LOGIN  = `${API_BASE}/auth/login`;
+    const CHAT_API    = `${API_BASE}/chat/`; // chat endpoint as implemented in backend/chat.py
+
+    /******************************
+     * UI wiring & simple SPA
+     ******************************/
+    const navButtons = document.querySelectorAll('nav button');
+    const views = document.querySelectorAll('.view');
+    function showView(name){
+      views.forEach(v=> v.classList.add('hidden'));
+      document.getElementById(`view-${name}`).classList.remove('hidden');
+      navButtons.forEach(b=> b.classList.toggle('active', b.dataset.view===name));
+    }
+    navButtons.forEach(b=> b.addEventListener('click', ()=> showView(b.dataset.view)));
+    // default view
+    showView('home');
+
+    /******************************
+     * Theme toggle + persist
+     ******************************/
+    const themeToggle = document.getElementById('themeToggle');
+    function applyTheme(theme){
+      if(theme==='light'){ document.body.classList.add('light'); themeToggle.textContent='🌞'; }
+      else { document.body.classList.remove('light'); themeToggle.textContent='🌙'; }
+      localStorage.setItem('chatora_theme', theme);
+    }
+    themeToggle.addEventListener('click', ()=>{
+      const isLight = document.body.classList.toggle('light');
+      themeToggle.textContent = isLight ? '🌞' : '🌙';
+      localStorage.setItem('chatora_theme', isLight ? 'light' : 'dark');
+    });
+    // restore
+    const savedTheme = localStorage.getItem('chatora_theme') || 'dark';
+    applyTheme(savedTheme);
+
+    /******************************
+     * Auth: signup / login / persistent token
+     ******************************/
+    const openLogin = document.getElementById('openLogin');
+    const openSignup = document.getElementById('openSignup');
+    const modalLogin = document.getElementById('modal-login');
+    const modalSignup = document.getElementById('modal-signup');
+    const loginSubmit = document.getElementById('loginSubmit');
+    const signupSubmit = document.getElementById('signupSubmit');
+    const loginCancel = document.getElementById('loginCancel');
+    const signupCancel = document.getElementById('signupCancel');
+    const toSignup = document.getElementById('toSignup');
+    const toLogin = document.getElementById('toLogin');
+
+    function openModal(modal){ modal.classList.remove('hidden'); }
+    function closeModal(modal){ modal.classList.add('hidden'); }
+
+    openLogin.onclick = ()=> openModal(modalLogin);
+    openSignup.onclick = ()=> openModal(modalSignup);
+    loginCancel.onclick = ()=> closeModal(modalLogin);
+    signupCancel.onclick = ()=> closeModal(modalSignup);
+    toSignup.onclick = ()=> { closeModal(modalLogin); openModal(modalSignup); }
+    toLogin.onclick = ()=> { closeModal(modalSignup); openModal(modalLogin); }
+
+    async function handleSignup(){
+      const username = document.getElementById('signup-username').value.trim();
+      const email = document.getElementById('signup-email').value.trim();
+      const password = document.getElementById('signup-password').value;
+      if(!username || !email || !password){ alert('Please fill all fields'); return; }
+      try{
+        const res = await fetch(AUTH_SIGNUP, {
+          method:'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ username, email, password })
+        });
+        if(!res.ok){ const err = await res.json().catch(()=>({detail:'Signup failed'})); throw new Error(err.detail || 'Signup failed'); }
+        const user = await res.json();
+        alert('Account created. Please login.');
+        closeModal(modalSignup);
+        openModal(modalLogin);
+      }catch(err){ alert('Signup error: '+err.message); console.error(err); }
+    }
+
+    async function handleLogin(){
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      if(!email || !password){ alert('Please fill all fields'); return; }
+      try{
+        const res = await fetch(AUTH_LOGIN, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if(!res.ok){ throw new Error(data.detail || 'Login failed'); }
+        // expected backend returns { access_token, token_type, user: { id, username } }
+        localStorage.setItem('chatora_token', data.access_token);
+        localStorage.setItem('chatora_user', JSON.stringify(data.user || {}));
+        updateAuthUI();
+        closeModal(modalLogin);
+        alert('Logged in successfully');
+      }catch(err){ alert('Login error: '+err.message); console.error(err); }
+    }
+
+    signupSubmit.addEventListener('click', handleSignup);
+    loginSubmit.addEventListener('click', handleLogin);
+
+    function logout(){
+      localStorage.removeItem('chatora_token');
+      localStorage.removeItem('chatora_user');
+      updateAuthUI();
+    }
+
+    function updateAuthUI(){
+      const user = JSON.parse(localStorage.getItem('chatora_user') || 'null');
+      const authControls = document.getElementById('auth-controls');
+      const currentUserEl = document.getElementById('currentUser');
+      const profileSnippet = document.getElementById('profileSnippet');
+      if(user && user.username){
+        authControls.innerHTML = `<button id="logoutBtn" class="icon">Logout</button>`;
+        document.getElementById('logoutBtn').addEventListener('click', logout);
+        currentUserEl.textContent = user.username;
+        profileSnippet.classList.remove('hidden');
+        profileSnippet.innerHTML = `<strong>${user.username}</strong><div class="small-muted">${user.email || ''}</div>`;
+        // populate Profile view
+        document.getElementById('profileContent').innerHTML = `
+          <div class="small-muted">Username: <strong>${user.username}</strong></div>
+          <div class="small-muted">Email: <strong>${user.email || '—'}</strong></div>
+          <div style="margin-top:10px"><button id="logoutBtn2" class="icon">Logout</button></div>
+        `;
+        document.getElementById('logoutBtn2').addEventListener('click', logout);
+      } else {
+        authControls.innerHTML = `<button id="openLogin" class="icon">Login</button><button id="openSignup" class="icon">Signup</button>`;
+        document.getElementById('openLogin').addEventListener('click', ()=> openModal(modalLogin));
+        document.getElementById('openSignup').addEventListener('click', ()=> openModal(modalSignup));
+        currentUserEl.textContent = 'Guest';
+        profileSnippet.classList.add('hidden');
+        document.getElementById('profileContent').innerHTML = `<p class="small-muted">You are not logged in.</p>`;
+      }
+    }
+    updateAuthUI();
+
+    /******************************
+     * Chat functionality (voice, tts, emoji)
+     ******************************/
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+    const sendBtn = document.getElementById('send-btn');
+    const voiceBtn = document.getElementById('voice-btn');
+    const emojiBtn = document.getElementById('emoji-btn');
+    const emojiPicker = document.getElementById('emoji-picker');
+
+    // append message
+    function appendMessage(sender, text){
+      const el = document.createElement('div');
+      el.className = 'msg ' + (sender==='user' ? 'user-msg' : 'bot-msg');
+      el.textContent = `${sender}: ${text}`;
+      chatBox.appendChild(el);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // emoji picker toggle + outside click close
+    emojiBtn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      emojiPicker.style.display = emojiPicker.style.display==='none' ? 'block' : 'none';
+      // place next to button
+      const rect = emojiBtn.getBoundingClientRect();
+      emojiPicker.style.left = `${rect.right - 300}px`;
+      emojiPicker.style.top = `${rect.bottom + 6}px`;
+    });
+    document.addEventListener('click', (e)=>{
+      if(emojiPicker.style.display === 'block' && !emojiPicker.contains(e.target) && e.target !== emojiBtn){
+        emojiPicker.style.display = 'none';
+      }
+    });
+    emojiPicker.addEventListener('emoji-click', e => {
+      userInput.value += e.detail.unicode;
+      userInput.focus();
+    });
+
+    // voices selection (pick female-like voice if possible)
+    let selectedVoice = null;
+    function loadVoices(){
+      const voices = window.speechSynthesis.getVoices();
+      if(voices && voices.length){
+        selectedVoice = voices.find(v => /female|woman|zira|amy|samantha|google/i.test(v.name)) || voices.find(v => v.lang.startsWith('en')) || voices[0];
+      }
+    }
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    // TTS speak function
+    let isSpeaking = false;
+    function speakText(text, lang='en-IN'){
+      try{
+        window.speechSynthesis.cancel();
+        const ut = new SpeechSynthesisUtterance(text);
+        ut.lang = lang;
+        if(selectedVoice) ut.voice = selectedVoice;
+        ut.rate = 1;
+        ut.pitch = 1.05;
+        ut.onstart = ()=> { isSpeaking=true; voiceBtn.textContent='⏹'; }
+        ut.onend = ()=> { isSpeaking=false; voiceBtn.textContent='🎤'; }
+        window.speechSynthesis.speak(ut);
+      }catch(e){ console.warn('TTS error', e); }
+    }
+
+    // Voice recognition
+    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+    recognition.lang = 'en-IN';
+    recognition.interimResults = false;
+    recognition.onresult = (evt) => {
+      const t = evt.results[0][0].transcript;
+      userInput.value = t;
+      handleSend();
+    };
+    recognition.onerror = (e) => console.log('Speech recognition error', e);
+
+    // voice button toggles listening / stop speaking
+    voiceBtn.addEventListener('click', ()=>{
+      if(isSpeaking){
+        window.speechSynthesis.cancel();
+        isSpeaking = false;
+        voiceBtn.textContent = '🎤';
+      } else {
+        try { recognition.start(); } catch(e){ console.log(e) }
+      }
+    });
+
+    // send handler — uses backend chat; includes token if exists
+    async function handleSend(){
+      const message = userInput.value.trim();
+      if(!message) return;
+      appendMessage('user', message);
+      userInput.value='';
+      // call backend
+      try{
+        const token = localStorage.getItem('chatora_token');
+        const headers = {'Content-Type':'application/json'};
+        if(token) headers['Authorization'] = `Bearer ${token}`;
+        const res = await fetch(CHAT_API, {
+          method:'POST',
+          headers,
+          body: JSON.stringify({ message })
+        });
+        const data = await res.json();
+        const reply = (data && data.reply) ? data.reply : (data.error || 'Sorry, no reply');
+        appendMessage('bot', reply);
+        // speak
+        speakText(reply);
+      }catch(err){
+        appendMessage('bot', '⚠️ Error connecting to server.');
+        console.error(err);
+      }
+    }
+    sendBtn.addEventListener('click', handleSend);
+    userInput.addEventListener('keypress', (e)=> { if(e.key==='Enter') handleSend(); });
+
+    /******************************
+     * Avatar (THREE.js)
+     ******************************/
+    // Simple GLTF loader like before
+    (function initAvatar(){
+      const avatarContainer = document.getElementById('avatar-container');
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(70, avatarContainer.clientWidth / avatarContainer.clientHeight, 0.1, 1000);
+      const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+      renderer.setSize(avatarContainer.clientWidth, avatarContainer.clientHeight);
+      avatarContainer.appendChild(renderer.domElement);
+      const ambient = new THREE.AmbientLight(0xffffff, 0.9); scene.add(ambient);
+      const point = new THREE.PointLight(0xffffff, 1); point.position.set(5,5,5); scene.add(point);
+      const loader = new THREE.GLTFLoader();
+      // placeholder GLB path; put model at assets/
+      loader.load('assets/barbie_deluxe_style_doll.glb', (gltf)=>{
+        const model = gltf.scene; model.scale.set(0.8,0.8,0.8); model.position.set(0,-1.2,0); scene.add(model); camera.position.z=4;
+        (function animate(){ requestAnimationFrame(animate); model.rotation.y += 0.01; renderer.render(scene, camera); })();
+      }, undefined, (err)=> console.warn('Avatar load err', err));
+      camera.position.z = 3;
+      // handle resizing
+      window.addEventListener('resize', ()=>{
+        renderer.setSize(avatarContainer.clientWidth, avatarContainer.clientHeight);
+        camera.aspect = avatarContainer.clientWidth / avatarContainer.clientHeight;
+        camera.updateProjectionMatrix();
+      });
+    })();
+
+    /******************************
+     * Helpful: restore state on load
+     ******************************/
+    (function restoreOnLoad(){
+      // restore theme applied earlier already
+      updateAuthUI();
+      // optional: greet
+      appendMessage('bot', 'Hello! I am ChatoraAI. Ask me anything or say "who are you".');
+    })();
+
+    /******************************
+     * Notes for backend:
+     * - /auth/signup: POST { username, email, password } -> returns created user (id, username, email)
+     * - /auth/login: POST { email, password } -> returns { access_token, token_type, user: {id, username, email} }
+     * - /chat/: POST { message } -> returns { reply }
+     *
+     * Make sure your backend sets CORS to allow requests from your frontend origin.
+     ******************************/
+  </script>
+</body>
+</html>

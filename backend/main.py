@@ -32,10 +32,29 @@ class ChatRequest(BaseModel):
 @app.post("/chat")
 async def chat_with_cohere(request: ChatRequest):
     try:
-        # Use Cohere's new Chat API instead of Generate API
+        user_message = request.message.lower().strip()
+
+        # Predefined responses for identity-related questions
+        identity_keywords = [
+            "who are you",
+            "your name",
+            "what is your name",
+            "are you a chatbot",
+            "are you ai",
+            "what can you do",
+            "developer name",
+            "who created you",
+            "about you"
+        ]
+
+        if any(keyword in user_message for keyword in identity_keywords):
+            reply = "I am ChatoraAI 🤖, an intelligent chatbot developed by Sewak."
+            return {"reply": reply}
+
+        # Use Cohere's Chat API for normal queries
         response = co.chat(
-            model="command-r",  # Use `command-r` or `command-r-plus`
-            message=request.message
+            model="command-r",
+            message=f"You are ChatoraAI, an AI chatbot created by Sewak. Respond politely.\nUser: {request.message}"
         )
 
         # Extract reply from response
@@ -44,3 +63,31 @@ async def chat_with_cohere(request: ChatRequest):
 
     except Exception as e:
         return {"error": str(e)}
+
+# main.py
+# from fastapi import FastAPI
+# from fastapi.middleware.cors import CORSMiddleware
+# from . import models
+# from .database import engine
+# from .auth import router as auth_router
+# from .chat import router as chat_router
+
+# models.Base.metadata.create_all(bind=engine)
+
+# app = FastAPI(title="ChatoraAI API")
+
+# # Configure CORS - in production set allowed origins specifically
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=["*"],  # change for production
+#     allow_credentials=True,
+#     allow_methods=["*"],
+#     allow_headers=["*"],
+# )
+
+# app.include_router(auth_router)
+# app.include_router(chat_router)
+
+# @app.get("/")
+# def root():
+#     return {"message": "ChatoraAI API is running"}
