@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile - ChatoraAI</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+  <div class="profile-container">
+    <div class="profile-header">
+      <h2>👤 My Profile</h2>
+      <div>
+        <button id="theme-toggle" class="theme-toggle">🌙</button>
+        <button onclick="goBack()" class="back-btn">← Back to Chat</button>
+      </div>
+    </div>
+
+    <div id="profile-loader" class="profile-loader">Loading profile details...</div>
+
+    <div class="profile-content" id="profile-content" style="display:none">
+      <div class="profile-avatar">
+        <img id="profile-image" src="assets/default-avatar.png" alt="Profile Avatar" class="profile-avatar-img" />
+        <div class="avatar-circle" id="profile-avatar-circle">
+          <span id="profile-initial">U</span>
+        </div>
+        <button id="profile-edit-btn" class="profile-edit-btn" title="Update profile image">✏️</button>
+        <input type="file" id="profile-image-input" accept="image/*" style="display: none;" />
+      </div>
+
+      <div class="upload-status" id="upload-status"></div>
+
+      <div class="profile-details">
+        <div class="detail-group">
+          <label>Username:</label>
+          <span id="profile-username">Loading...</span>
+        </div>
+
+        <div class="detail-group">
+          <label>Email:</label>
+          <span id="profile-email">Loading...</span>
+        </div>
+
+        <div class="detail-group">
+          <label>Account Created:</label>
+          <span id="profile-created">Loading...</span>
+        </div>
+
+        <div class="detail-group">
+          <label>Status:</label>
+          <span id="profile-status" class="status-active">Active</span>
+        </div>
+      </div>
+
+      <div class="profile-actions">
+        <button onclick="editProfile()" class="edit-btn">✏️ Edit Profile</button>
+        <button onclick="changePassword()" class="change-password-btn">🔒 Change Password</button>
+      </div>
+
+      <div id="edit-profile-form" class="profile-form" style="display:none; margin-top: 18px;">
+        <h3>Edit Profile</h3>
+        <label>Username</label>
+        <input id="edit-username" type="text" placeholder="Username" />
+        <label>Email</label>
+        <input id="edit-email" type="email" placeholder="Email" />
+        <div class="form-actions">
+          <button id="save-profile-btn" type="button">Save</button>
+          <button id="cancel-edit-btn" type="button">Cancel</button>
+        </div>
+        <div id="edit-profile-status" class="profile-status"></div>
+      </div>
+
+      <div id="change-password-form" class="profile-form" style="display:none; margin-top: 18px;">
+        <h3>Change Password</h3>
+
+        <label>Current Password</label>
+        <div class="password-input-group">
+          <input id="current-password" type="password" placeholder="Current password" />
+          <button type="button" class="toggle-password" data-target="current-password" aria-label="Show password">👁️</button>
+        </div>
+
+        <label>New Password</label>
+        <div class="password-input-group">
+          <input id="new-password" type="password" placeholder="New password" />
+          <button type="button" class="toggle-password" data-target="new-password" aria-label="Show password">👁️</button>
+        </div>
+
+        <label>Confirm New Password</label>
+        <div class="password-input-group">
+          <input id="confirm-password" type="password" placeholder="Confirm new password" />
+          <button type="button" class="toggle-password" data-target="confirm-password" aria-label="Show password">👁️</button>
+        </div>
+
+        <div class="form-actions">
+          <button id="change-password-btn" type="button">Change Password</button>
+          <button id="cancel-change-btn" type="button">Cancel</button>
+        </div>
+        <div id="change-password-status" class="profile-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/profile.js"></script>
+</body>
+</html>

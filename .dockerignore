@@ -1,0 +1,12 @@
+env
+.git
+.gitignore
+node_modules
+frontend
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.swo
+.DS_Store

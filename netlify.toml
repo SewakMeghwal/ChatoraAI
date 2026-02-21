@@ -1,0 +1,7 @@
+[build]
+  base = "frontend"
+  publish = "."
+  command = "echo 'Deploying frontend to Netlify'"
+
+[build.environment]
+  NODE_VERSION = "18"

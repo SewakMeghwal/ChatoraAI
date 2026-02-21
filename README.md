@@ -9,6 +9,8 @@ Features, APIs, and UI elements may change without prior notice.
 **ChatoraAI** is an AI-powered **voice + chat bot** built with **Python FastAPI** and **Cohere NLP**, featuring an **interactive Three.js 3D interface**.  
 It supports **text-based conversations** and **real-time voice interactions**, delivering a human-like chat experience with immersive visuals.
 
+![alt text](<frontend\assets\ChatoraAI.png>)
+
 ---
 
 ## ✨ Features
