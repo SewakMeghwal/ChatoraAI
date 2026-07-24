@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Profile - ChatoraAI</title>
+  <link rel="icon" type="image/png" href="assets/logo-main.png" />
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/auth.css">
 </head>
@@ -17,11 +18,40 @@
       </div>
     </div>
 
-    <div id="profile-loader" class="profile-loader">Loading profile details...</div>
+    <div id="profile-loader" class="profile-skeleton">
+
+  <div class="skeleton-avatar"></div>
+
+  <div class="skeleton-content">
+    <div class="skeleton-line skeleton-title"></div>
+
+    <div class="skeleton-card">
+      <div class="skeleton-line"></div>
+      <div class="skeleton-line short"></div>
+    </div>
+
+    <div class="skeleton-card">
+      <div class="skeleton-line"></div>
+      <div class="skeleton-line short"></div>
+    </div>
+
+    <div class="skeleton-card">
+      <div class="skeleton-line"></div>
+      <div class="skeleton-line short"></div>
+    </div>
+
+    <div class="skeleton-buttons">
+      <div class="skeleton-btn"></div>
+      <div class="skeleton-btn"></div>
+    </div>
+
+  </div>
+
+</div>
 
     <div class="profile-content" id="profile-content" style="display:none">
       <div class="profile-avatar">
-        <img id="profile-image" src="assets/default-avatar.png" alt="Profile Avatar" class="profile-avatar-img" />
+        <img id="profile-image" src="assets/default-avatar.png" alt="Profile Avatar" class="profile-avatar-img" style="display: none;" />
         <div class="avatar-circle" id="profile-avatar-circle">
           <span id="profile-initial">U</span>
         </div>

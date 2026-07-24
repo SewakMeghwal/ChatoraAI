@@ -347,7 +347,7 @@ function initThemeToggle() {
 
 initThemeToggle();
 
-// === Mixamo 3D Avatar ===
+// === Animated 3D Avatar ===
 const avatarContainer = document.getElementById("avatar-container");
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
@@ -357,52 +357,131 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(avatarContainer.clientWidth, avatarContainer.clientHeight);
 avatarContainer.appendChild(renderer.domElement);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
 scene.add(ambientLight);
-const pointLight = new THREE.PointLight(0xffffff, 1);
-pointLight.position.set(5, 5, 5);
+const pointLight = new THREE.PointLight(0x80d8ff, 1.2);
+pointLight.position.set(4, 6, 5);
 scene.add(pointLight);
+const rimLight = new THREE.PointLight(0x00eaff, 0.7);
+rimLight.position.set(-4, 2, 4);
+scene.add(rimLight);
 
-const loader = new THREE.GLTFLoader();
-loader.load(
-  "assets/barbie_deluxe_style_doll.glb", // use correct model path
-  (gltf) => {
-    const model = gltf.scene;
+const robotGroup = new THREE.Group();
+const headMaterial = new THREE.MeshStandardMaterial({
+  color: 0x1a9fff,
+  metalness: 0.35,
+  roughness: 0.28,
+  emissive: 0x0b6f9d,
+  emissiveIntensity: 0.18,
+});
+const whiteMaterial = new THREE.MeshStandardMaterial({
+  color: 0xf4f7ff,
+  metalness: 0.1,
+  roughness: 0.5,
+});
+const glassMaterial = new THREE.MeshStandardMaterial({
+  color: 0x91d7ff,
+  metalness: 0.2,
+  roughness: 0.05,
+  transparent: true,
+  opacity: 0.82,
+});
 
-    // Reduce the size
-    model.scale.set(0.8, 0.8, 0.8);
+const head = new THREE.Mesh(new THREE.SphereGeometry(1.05, 64, 64), headMaterial);
+head.position.set(0, 0, 0);
+robotGroup.add(head);
 
-    // Center the model
-    model.position.set(0, -1.2, 0);
+const eyeLeft = new THREE.Mesh(new THREE.SphereGeometry(0.16, 32, 32), whiteMaterial);
+eyeLeft.position.set(-0.35, 0.15, 0.92);
+robotGroup.add(eyeLeft);
+const eyeRight = eyeLeft.clone();
+eyeRight.position.set(0.35, 0.15, 0.92);
+robotGroup.add(eyeRight);
 
-    scene.add(model);
+const pupilMaterial = new THREE.MeshStandardMaterial({
+  color: 0x0b2c4f,
+  emissive: 0x003e74,
+  emissiveIntensity: 0.4,
+});
+const pupilLeft = new THREE.Mesh(new THREE.SphereGeometry(0.08, 32, 32), pupilMaterial);
+pupilLeft.position.set(-0.35, 0.15, 1.04);
+robotGroup.add(pupilLeft);
+const pupilRight = pupilLeft.clone();
+pupilRight.position.set(0.35, 0.15, 1.04);
+robotGroup.add(pupilRight);
 
-    // Move camera back so the model fits perfectly
-    camera.position.z = 4;
+const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.08, 0.12), glassMaterial);
+mouth.position.set(0, -0.35, 0.93);
+robotGroup.add(mouth);
 
-    // Animate rotation
-    function animate() {
-      requestAnimationFrame(animate);
-      model.rotation.y += 0.01;
-      renderer.render(scene, camera);
-    }
-    animate();
-  },
-  undefined,
-  (error) => console.error("Error loading avatar model:", error)
+const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.8, 16), headMaterial);
+antenna.position.set(0, 0.95, -0.1);
+robotGroup.add(antenna);
+const antennaBall = new THREE.Mesh(new THREE.SphereGeometry(0.14, 32, 32), new THREE.MeshStandardMaterial({
+  color: 0x00eaff,
+  emissive: 0x00eaff,
+  emissiveIntensity: 1,
+}));
+antennaBall.position.set(0, 1.35, -0.1);
+robotGroup.add(antennaBall);
+
+const ringGeometry = new THREE.TorusGeometry(1.35, 0.08, 32, 100);
+const ringMaterial = new THREE.MeshStandardMaterial({
+  color: 0x00d9ff,
+  emissive: 0x00a8ff,
+  emissiveIntensity: 0.55,
+  metalness: 0.4,
+  roughness: 0.2,
+});
+const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+ring.rotation.x = Math.PI * 0.45;
+ring.position.y = -0.8;
+robotGroup.add(ring);
+
+const floor = new THREE.Mesh(
+  new THREE.CircleGeometry(2.4, 64),
+  new THREE.MeshStandardMaterial({ color: 0x071921, roughness: 0.8, metalness: 0.1 })
 );
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = -1.5;
+scene.add(floor);
 
+scene.add(robotGroup);
 
-// const clock = new THREE.Clock();
-// function animate() {
-//   requestAnimationFrame(animate);
-//   const delta = clock.getDelta();
-//   if (mixer) mixer.update(delta);
-//   renderer.render(scene, camera);
-// }
+camera.position.set(0, 0.8, 4.2);
+camera.lookAt(0, 0, 0);
+
+const clock = new THREE.Clock();
+
+function resizeAvatar() {
+  const width = avatarContainer.clientWidth;
+  const height = avatarContainer.clientHeight;
+  renderer.setSize(width, height);
+  camera.aspect = width / height;
+  camera.updateProjectionMatrix();
+}
+
+window.addEventListener("resize", resizeAvatar);
+resizeAvatar();
+
+function animateAvatar() {
+  requestAnimationFrame(animateAvatar);
+  const elapsed = clock.getElapsedTime();
+  robotGroup.rotation.y = Math.sin(elapsed * 0.5) * 0.08;
+  robotGroup.position.y = Math.sin(elapsed * 1.2) * 0.03;
+  ring.rotation.z = elapsed * 0.7;
+  antennaBall.position.y = 1.35 + Math.sin(elapsed * 2.2) * 0.08;
+  pupilLeft.position.x = -0.35 + Math.sin(elapsed * 1.8) * 0.01;
+  pupilRight.position.x = 0.35 + Math.sin(elapsed * 1.8 + 0.5) * 0.01;
+  renderer.render(scene, camera);
+}
+
+animateAvatar();
+
 function showToast() {
   const toast = document.getElementById("toast");
   if (!toast) return;

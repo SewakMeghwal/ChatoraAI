@@ -43,12 +43,15 @@ async function loadProfile() {
     document.getElementById("profile-initial").textContent = userData.username.charAt(0).toUpperCase();
 
     const profileImage = document.getElementById("profile-image");
+    const profileAvatarCircle = document.getElementById("profile-avatar-circle");
+
     if (userData.profile_image) {
       profileImage.src = userData.profile_image;
-      document.getElementById("profile-avatar-circle").style.display = "none";
+      profileImage.style.display = "block";
+      profileAvatarCircle.style.display = "none";
     } else {
-      profileImage.src = "assets/default-avatar.png";
-      document.getElementById("profile-avatar-circle").style.display = "flex";
+      profileImage.style.display = "none";
+      profileAvatarCircle.style.display = "flex";
     }
 
     setupImageUpload();
@@ -160,8 +163,12 @@ function setupImageUpload() {
     const reader = new FileReader();
     reader.onload = async (event) => {
       const imageData = event.target.result;
-      document.getElementById("profile-image").src = imageData;
-      document.getElementById("profile-avatar-circle").style.display = "none";
+      const profileImage = document.getElementById("profile-image");
+      const profileAvatarCircle = document.getElementById("profile-avatar-circle");
+
+      profileImage.src = imageData;
+      profileImage.style.display = "block";
+      profileAvatarCircle.style.display = "none";
       status.textContent = "Uploading...";
 
       try {
