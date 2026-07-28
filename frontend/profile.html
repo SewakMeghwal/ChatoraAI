@@ -3,127 +3,125 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Profile - ChatoraAI</title>
+  <title>User Profile - Chatora AI</title>
   <link rel="icon" type="image/png" href="assets/logo-main.png" />
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="css/main.css">
   <link rel="stylesheet" href="css/auth.css">
 </head>
 <body>
   <div class="profile-container">
     <div class="profile-header">
-      <h2>👤 My Profile</h2>
-      <div>
+      <h2>👤 User Profile</h2>
+      <div style="display: flex; gap: 10px;">
         <button id="theme-toggle" class="theme-toggle">🌙</button>
         <button onclick="goBack()" class="back-btn">← Back to Chat</button>
       </div>
     </div>
 
+    <!-- Skeleton Loader -->
     <div id="profile-loader" class="profile-skeleton">
-
-  <div class="skeleton-avatar"></div>
-
-  <div class="skeleton-content">
-    <div class="skeleton-line skeleton-title"></div>
-
-    <div class="skeleton-card">
-      <div class="skeleton-line"></div>
-      <div class="skeleton-line short"></div>
-    </div>
-
-    <div class="skeleton-card">
-      <div class="skeleton-line"></div>
-      <div class="skeleton-line short"></div>
-    </div>
-
-    <div class="skeleton-card">
-      <div class="skeleton-line"></div>
-      <div class="skeleton-line short"></div>
-    </div>
-
-    <div class="skeleton-buttons">
-      <div class="skeleton-btn"></div>
-      <div class="skeleton-btn"></div>
-    </div>
-
-  </div>
-
-</div>
-
-    <div class="profile-content" id="profile-content" style="display:none">
-      <div class="profile-avatar">
-        <img id="profile-image" src="assets/default-avatar.png" alt="Profile Avatar" class="profile-avatar-img" style="display: none;" />
-        <div class="avatar-circle" id="profile-avatar-circle">
-          <span id="profile-initial">U</span>
-        </div>
-        <button id="profile-edit-btn" class="profile-edit-btn" title="Update profile image">✏️</button>
-        <input type="file" id="profile-image-input" accept="image/*" style="display: none;" />
+      <div class="skeleton-avatar"></div>
+      <div class="skeleton-content">
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
       </div>
+    </div>
 
-      <div class="upload-status" id="upload-status"></div>
+    <!-- Main Profile Content -->
+    <div class="profile-content" id="profile-content" style="display:none">
+      <div class="profile-avatar-wrapper">
+        <div class="profile-avatar">
+          <img id="profile-image" alt="Profile Avatar" class="profile-avatar-img" style="display: none;" />
+          <div class="avatar-circle" id="profile-avatar-circle">
+            <span id="profile-initial">U</span>
+          </div>
+          <button id="profile-edit-btn" class="profile-edit-btn" title="Update profile image">✏️</button>
+          <input type="file" id="profile-image-input" accept="image/*" style="display: none;" />
+        </div>
+      </div>
 
       <div class="profile-details">
         <div class="detail-group">
-          <label>Username:</label>
+          <label>Username</label>
           <span id="profile-username">Loading...</span>
         </div>
 
         <div class="detail-group">
-          <label>Email:</label>
+          <label>Email Address</label>
           <span id="profile-email">Loading...</span>
         </div>
 
         <div class="detail-group">
-          <label>Account Created:</label>
-          <span id="profile-created">Loading...</span>
-        </div>
-
-        <div class="detail-group">
-          <label>Status:</label>
+          <label>Account Status</label>
           <span id="profile-status" class="status-active">Active</span>
         </div>
       </div>
+
+      <div class="upload-status" id="upload-status"></div>
 
       <div class="profile-actions">
         <button onclick="editProfile()" class="edit-btn">✏️ Edit Profile</button>
         <button onclick="changePassword()" class="change-password-btn">🔒 Change Password</button>
       </div>
 
-      <div id="edit-profile-form" class="profile-form" style="display:none; margin-top: 18px;">
-        <h3>Edit Profile</h3>
-        <label>Username</label>
-        <input id="edit-username" type="text" placeholder="Username" />
-        <label>Email</label>
-        <input id="edit-email" type="email" placeholder="Email" />
+      <!-- Edit Profile Form -->
+      <div id="edit-profile-form" class="profile-form" style="display:none;">
+        <h3>✏️ Edit Profile Details</h3>
+        
+        <div class="form-field-group">
+          <label for="edit-username">Username</label>
+          <input id="edit-username" type="text" placeholder="Enter new username" />
+        </div>
+
+        <div class="form-field-group">
+          <label for="edit-email">Email Address</label>
+          <input id="edit-email" type="email" placeholder="Enter new email" />
+        </div>
+
         <div class="form-actions">
-          <button id="save-profile-btn" type="button">Save</button>
+          <button id="save-profile-btn" type="button">Save Changes</button>
           <button id="cancel-edit-btn" type="button">Cancel</button>
         </div>
         <div id="edit-profile-status" class="profile-status"></div>
       </div>
 
-      <div id="change-password-form" class="profile-form" style="display:none; margin-top: 18px;">
-        <h3>Change Password</h3>
+      <!-- Change Password Form -->
+      <div id="change-password-form" class="profile-form" style="display:none;">
+        <h3>🔒 Security & Password</h3>
 
-        <label>Current Password</label>
-        <div class="password-input-group">
-          <input id="current-password" type="password" placeholder="Current password" />
-          <button type="button" class="toggle-password" data-target="current-password" aria-label="Show password">👁️</button>
+        <div class="form-field-group">
+          <label for="current-password">Current Password</label>
+          <div class="password-input-group">
+            <input id="current-password" type="password" placeholder="Enter current password" />
+            <button type="button" class="toggle-password" data-target="current-password" aria-label="Show password">👁️</button>
+          </div>
         </div>
 
-        <label>New Password</label>
-        <div class="password-input-group">
-          <input id="new-password" type="password" placeholder="New password" />
-          <button type="button" class="toggle-password" data-target="new-password" aria-label="Show password">👁️</button>
+        <div class="form-field-group">
+          <label for="new-password">New Password</label>
+          <div class="password-input-group">
+            <input id="new-password" type="password" placeholder="Enter new password" />
+            <button type="button" class="toggle-password" data-target="new-password" aria-label="Show password">👁️</button>
+          </div>
         </div>
 
-        <label>Confirm New Password</label>
-        <div class="password-input-group">
-          <input id="confirm-password" type="password" placeholder="Confirm new password" />
-          <button type="button" class="toggle-password" data-target="confirm-password" aria-label="Show password">👁️</button>
+        <div class="form-field-group">
+          <label for="confirm-password">Confirm New Password</label>
+          <div class="password-input-group">
+            <input id="confirm-password" type="password" placeholder="Confirm new password" />
+            <button type="button" class="toggle-password" data-target="confirm-password" aria-label="Show password">👁️</button>
+          </div>
         </div>
 
         <div class="form-actions">
-          <button id="change-password-btn" type="button">Change Password</button>
+          <button id="submit-password-btn" type="button">Update Password</button>
           <button id="cancel-change-btn" type="button">Cancel</button>
         </div>
         <div id="change-password-status" class="profile-status"></div>
@@ -131,6 +129,6 @@
     </div>
   </div>
 
-  <script src="js/profile.js"></script>
+  <script src="js/profile.js?v=3"></script>
 </body>
 </html>
