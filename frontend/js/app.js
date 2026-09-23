@@ -286,24 +286,60 @@ userInput.addEventListener("keypress", (e) => {
   if (e.key === "Enter") sendMessage();
 });
 
-emojiBtn.addEventListener("click", (e) => {
-  e.stopPropagation();
-  emojiPicker.style.display =
-    emojiPicker.style.display === "none" ? "block" : "none";
-});
+// --- Emoji Mart Integration ---
+let emojiMartPicker = null;
+
+function initEmojiPicker() {
+  const container = document.getElementById("emoji-picker-container");
+  if (!container || typeof EmojiMart === "undefined") return;
+
+  container.innerHTML = "";
+  const isLight = document.body.classList.contains("light");
+
+  try {
+    emojiMartPicker = new EmojiMart.Picker({
+      onEmojiSelect: (emoji) => {
+        const symbol = emoji.native || emoji.shortcodes || "";
+        userInput.value += symbol;
+        container.style.display = "none";
+      },
+      theme: isLight ? "light" : "dark",
+      set: "native",
+      previewPosition: "none"
+    });
+    container.appendChild(emojiMartPicker);
+  } catch (err) {
+    console.warn("EmojiMart initialization warning:", err);
+  }
+}
+
+if (emojiBtn) {
+  emojiBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const container = document.getElementById("emoji-picker-container");
+    if (!container) return;
+
+    if (container.style.display === "none" || !container.style.display) {
+      if (!emojiMartPicker) {
+        initEmojiPicker();
+      }
+      container.style.display = "block";
+    } else {
+      container.style.display = "none";
+    }
+  });
+}
 
 document.addEventListener("click", (e) => {
+  const container = document.getElementById("emoji-picker-container");
   if (
-    !emojiPicker.contains(e.target) &&
+    container &&
+    !container.contains(e.target) &&
     e.target !== emojiBtn &&
-    emojiPicker.style.display === "block"
+    container.style.display === "block"
   ) {
-    emojiPicker.style.display = "none";
+    container.style.display = "none";
   }
-});
-
-emojiPicker.addEventListener("emoji-click", (event) => {
-  userInput.value += event.detail.unicode;
 });
 
 // Feature 3: Hands-Free Voice Commands Processor
@@ -317,6 +353,7 @@ recognition.onresult = (event) => {
     document.body.classList.remove("light");
     localStorage.setItem("theme", "dark");
     if (themeToggle) themeToggle.textContent = "🌙";
+    initEmojiPicker();
     showToast("Switched to Dark Mode 🌙");
     return;
   }
@@ -325,6 +362,7 @@ recognition.onresult = (event) => {
     document.body.classList.add("light");
     localStorage.setItem("theme", "light");
     if (themeToggle) themeToggle.textContent = "🌞";
+    initEmojiPicker();
     showToast("Switched to Light Mode 🌞");
     return;
   }
@@ -375,6 +413,7 @@ function initThemeToggle() {
       const isLight = document.body.classList.contains("light");
       themeToggle.textContent = isLight ? "🌞" : "🌙";
       localStorage.setItem("theme", isLight ? "light" : "dark");
+      initEmojiPicker();
     });
   }
 }
@@ -820,55 +859,181 @@ function removeTyping() {
   if (typing) typing.remove();
 }
 
+function getChatMessages(chat) {
+  if (!chat) return [];
+  if (Array.isArray(chat)) return chat;
+  if (Array.isArray(chat.messages)) return chat.messages;
+  return [];
+}
+
+function getChatTitle(chat) {
+  if (!chat) return "New Chat";
+  if (!Array.isArray(chat) && (chat.customTitle || chat.title)) {
+    return chat.customTitle || chat.title;
+  }
+  const msgs = getChatMessages(chat);
+  const firstUserMsg = msgs.find(m => m.sender && (m.sender.includes("You") || m.sender === "user")) || msgs[0];
+  const text = firstUserMsg?.message || "New Chat";
+  return text.length > 25 ? text.substring(0, 22) + "..." : text;
+}
+
+function saveChatsToStorage() {
+  localStorage.setItem("allChats", JSON.stringify(allChats));
+}
+
 function updateHistory() {
   const historyList = document.getElementById("history-list");
   if (!historyList) return;
   historyList.innerHTML = "";
 
-  allChats.slice().reverse().forEach((chat) => {
-    const item = document.createElement("div");
-    item.classList.add("history-item");
+  const reversedChats = allChats.slice().reverse();
 
-    const firstMsg = chat[0]?.message || "New Chat";
-    item.textContent = firstMsg.substring(0, 25) + "...";
+  reversedChats.forEach((chat) => {
+    const originalIndex = allChats.indexOf(chat);
+    
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("history-item-wrapper");
 
-    item.onclick = () => loadChat(chat);
-    historyList.appendChild(item);
+    const activeMsgs = getChatMessages(currentChat);
+    const thisMsgs = getChatMessages(chat);
+    if (currentChat === chat || (activeMsgs.length > 0 && activeMsgs === thisMsgs)) {
+      wrapper.classList.add("active");
+    }
+
+    const titleDiv = document.createElement("div");
+    titleDiv.classList.add("history-item-title");
+
+    const titleText = getChatTitle(chat);
+    titleDiv.innerHTML = `
+      <span style="font-size: 0.9rem;">💬</span>
+      <span class="title-text" title="${titleText.replace(/"/g, '&quot;')}">${titleText}</span>
+    `;
+
+    titleDiv.onclick = () => loadChat(chat);
+
+    const actionsDiv = document.createElement("div");
+    actionsDiv.classList.add("history-actions");
+
+    const renameBtn = document.createElement("button");
+    renameBtn.classList.add("history-action-btn", "rename-btn");
+    renameBtn.title = "Rename Chat";
+    renameBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+      </svg>
+    `;
+
+    renameBtn.onclick = (e) => {
+      e.stopPropagation();
+      const currentTitle = getChatTitle(chat);
+      const newTitle = prompt("Enter a new title for this chat:", currentTitle);
+      if (newTitle !== null && newTitle.trim() !== "") {
+        if (Array.isArray(chat)) {
+          allChats[originalIndex] = {
+            customTitle: newTitle.trim(),
+            messages: chat
+          };
+        } else {
+          chat.customTitle = newTitle.trim();
+        }
+        saveChatsToStorage();
+        updateHistory();
+      }
+    };
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.classList.add("history-action-btn", "delete-btn");
+    deleteBtn.title = "Delete Chat";
+    deleteBtn.innerHTML = `
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      </svg>
+    `;
+
+    deleteBtn.onclick = (e) => {
+      e.stopPropagation();
+      if (confirm("Are you sure you want to delete this chat thread?")) {
+        const deletedChat = allChats.splice(originalIndex, 1)[0];
+        const deletedMsgs = getChatMessages(deletedChat);
+        const currentMsgs = getChatMessages(currentChat);
+
+        if (currentChat === deletedChat || (currentMsgs.length > 0 && currentMsgs === deletedMsgs)) {
+          currentChat = [];
+          chatBox.innerHTML = "";
+          clearProjections();
+          setAvatarEmotion("neutral");
+        }
+        saveChatsToStorage();
+        updateHistory();
+      }
+    };
+
+    actionsDiv.appendChild(renameBtn);
+    actionsDiv.appendChild(deleteBtn);
+
+    wrapper.appendChild(titleDiv);
+    wrapper.appendChild(actionsDiv);
+    historyList.appendChild(wrapper);
   });
 }
 
 function loadChat(chat) {
   chatBox.innerHTML = "";
-  currentChat = chat;
+  if (Array.isArray(chat)) {
+    currentChat = chat;
+  } else if (chat && Array.isArray(chat.messages)) {
+    currentChat = chat.messages;
+  } else {
+    currentChat = [];
+  }
 
-  chat.forEach(m => {
+  const msgs = getChatMessages(chat);
+  msgs.forEach(m => {
     appendMessage(m.sender, m.message);
   });
+  updateHistory();
 }
 
 const newChatBtn = document.getElementById("new-chat-btn");
 if (newChatBtn) {
   newChatBtn.onclick = () => {
-    if (currentChat.length) {
-      allChats.push(currentChat);
+    const msgs = getChatMessages(currentChat);
+    if (msgs.length > 0) {
+      const exists = allChats.some(c => c === currentChat || getChatMessages(c) === msgs);
+      if (!exists) {
+        allChats.push(currentChat);
+      }
     }
     currentChat = [];
     chatBox.innerHTML = "";
     clearProjections();
     setAvatarEmotion("neutral");
+    saveChatsToStorage();
     updateHistory();
   };
 }
 
 window.addEventListener("beforeunload", () => {
-  if (currentChat.length) allChats.push(currentChat);
-  localStorage.setItem("allChats", JSON.stringify(allChats));
+  const msgs = getChatMessages(currentChat);
+  if (msgs.length > 0) {
+    const exists = allChats.some(c => c === currentChat || getChatMessages(c) === msgs);
+    if (!exists) {
+      allChats.push(currentChat);
+    }
+  }
+  saveChatsToStorage();
 });
 
 window.addEventListener("load", () => {
   const saved = localStorage.getItem("allChats");
   if (saved) {
-    allChats = JSON.parse(saved);
+    try {
+      allChats = JSON.parse(saved);
+    } catch (e) {
+      allChats = [];
+    }
     updateHistory();
   }
 });
