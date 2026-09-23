@@ -881,6 +881,112 @@ function saveChatsToStorage() {
   localStorage.setItem("allChats", JSON.stringify(allChats));
 }
 
+// --- Custom Themed Modal Controller ---
+function showCustomModal({ title, icon = "✏️", description, inputPlaceholder = "", defaultValue = "", isPrompt = true, isDanger = false, confirmText = "Save" }) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("custom-modal-overlay");
+    const iconEl = document.getElementById("modal-icon");
+    const titleEl = document.getElementById("modal-title");
+    const descEl = document.getElementById("modal-description");
+    const inputContainer = document.getElementById("modal-input-container");
+    const inputEl = document.getElementById("modal-input");
+    const cancelBtn = document.getElementById("modal-cancel-btn");
+    const confirmBtn = document.getElementById("modal-confirm-btn");
+    const closeBtn = document.getElementById("modal-close-btn");
+
+    if (!overlay) return resolve(null);
+
+    iconEl.textContent = icon;
+    titleEl.textContent = title;
+    descEl.textContent = description;
+    confirmBtn.textContent = confirmText;
+
+    if (isDanger) {
+      confirmBtn.classList.add("danger");
+    } else {
+      confirmBtn.classList.remove("danger");
+    }
+
+    if (isPrompt) {
+      inputContainer.style.display = "flex";
+      inputEl.value = defaultValue;
+      inputEl.placeholder = inputPlaceholder;
+    } else {
+      inputContainer.style.display = "none";
+    }
+
+    overlay.style.display = "flex";
+    setTimeout(() => {
+      overlay.classList.add("show");
+      if (isPrompt) {
+        inputEl.focus();
+        inputEl.select();
+      }
+    }, 10);
+
+    const cleanup = () => {
+      overlay.classList.remove("show");
+      setTimeout(() => {
+        overlay.style.display = "none";
+      }, 250);
+      cancelBtn.removeEventListener("click", onCancel);
+      confirmBtn.removeEventListener("click", onConfirm);
+      closeBtn.removeEventListener("click", onCancel);
+      overlay.removeEventListener("click", onOverlayClick);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+
+    const onCancel = () => {
+      cleanup();
+      resolve(null);
+    };
+
+    const onConfirm = () => {
+      const val = isPrompt ? inputEl.value : true;
+      cleanup();
+      resolve(val);
+    };
+
+    const onOverlayClick = (e) => {
+      if (e.target === overlay) onCancel();
+    };
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") onCancel();
+      if (e.key === "Enter") onConfirm();
+    };
+
+    cancelBtn.addEventListener("click", onCancel);
+    confirmBtn.addEventListener("click", onConfirm);
+    closeBtn.addEventListener("click", onCancel);
+    overlay.addEventListener("click", onOverlayClick);
+    document.addEventListener("keydown", onKeyDown);
+  });
+}
+
+function showPromptModal(title, description, defaultValue = "") {
+  return showCustomModal({
+    title: title || "Rename Chat",
+    icon: "✏️",
+    description,
+    defaultValue,
+    isPrompt: true,
+    isDanger: false,
+    confirmText: "Save"
+  });
+}
+
+function showConfirmModal(title, description) {
+  return showCustomModal({
+    title: title || "Delete Chat",
+    icon: "🗑️",
+    description,
+    isPrompt: false,
+    isDanger: true,
+    confirmText: "Delete"
+  });
+}
+
 function updateHistory() {
   const historyList = document.getElementById("history-list");
   if (!historyList) return;
@@ -924,10 +1030,10 @@ function updateHistory() {
       </svg>
     `;
 
-    renameBtn.onclick = (e) => {
+    renameBtn.onclick = async (e) => {
       e.stopPropagation();
       const currentTitle = getChatTitle(chat);
-      const newTitle = prompt("Enter a new title for this chat:", currentTitle);
+      const newTitle = await showPromptModal("Rename Chat", "Enter a new title for this chat:", currentTitle);
       if (newTitle !== null && newTitle.trim() !== "") {
         if (Array.isArray(chat)) {
           allChats[originalIndex] = {
@@ -952,9 +1058,10 @@ function updateHistory() {
       </svg>
     `;
 
-    deleteBtn.onclick = (e) => {
+    deleteBtn.onclick = async (e) => {
       e.stopPropagation();
-      if (confirm("Are you sure you want to delete this chat thread?")) {
+      const confirmed = await showConfirmModal("Delete Chat", "Are you sure you want to delete this chat thread? This action cannot be undone.");
+      if (confirmed) {
         const deletedChat = allChats.splice(originalIndex, 1)[0];
         const deletedMsgs = getChatMessages(deletedChat);
         const currentMsgs = getChatMessages(currentChat);
