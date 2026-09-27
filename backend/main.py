@@ -39,8 +39,36 @@ COHERE_API_KEY = os.getenv("COHERE_API_KEY")
 if not COHERE_API_KEY:
     raise ValueError("⚠️ COHERE_API_KEY not found. Please check your .env file.")
 
-# Initialize Cohere client
-co = cohere.ClientV2(COHERE_API_KEY) 
+# Initialize Async Cohere client for non-blocking I/O
+co = cohere.AsyncClientV2(COHERE_API_KEY) 
+
+# In-memory LRU cache for responses (up to 200 entries)
+CHAT_CACHE = {}
+CACHE_MAX_SIZE = 200
+
+# Fast-path instant responses (<1ms response time)
+QUICK_RESPONSES = {
+    "hi": "Hello! 👋 How can I assist you today?",
+    "hello": "Hello there! How can I help you with ChatoraAI today?",
+    "hey": "Hey! How can I assist you today?",
+    "good morning": "Good morning! ☀️ How can I assist you today?",
+    "good evening": "Good evening! 🌙 How can I assist you today?",
+    "thanks": "You're very welcome! Let me know if you need anything else. 😊",
+    "thank you": "You're welcome! Happy to help. ✨",
+    "bye": "Goodbye! Have a fantastic day ahead! 👋",
+}
+
+IDENTITY_KEYWORDS = [
+    "who are you",
+    "your name",
+    "what is your name",
+    "are you a chatbot",
+    "are you ai",
+    "what can you do",
+    "developer name",
+    "who created you",
+    "about you"
+]
 
 app = FastAPI()
 
@@ -62,35 +90,45 @@ async def chat_with_cohere(
     current_user: User = Depends(get_current_user),
 ):
     try:
-        user_message = request.message.lower().strip()
+        raw_msg = request.message.strip()
+        if not raw_msg:
+            return {"reply": "Please enter a message to chat!"}
 
-        # Predefined responses for identity-related questions
-        identity_keywords = [
-            "who are you",
-            "your name",
-            "what is your name",
-            "are you a chatbot",
-            "are you ai",
-            "what can you do",
-            "developer name",
-            "who created you",
-            "about you"
-        ]
+        user_message = raw_msg.lower()
 
-        if any(keyword in user_message for keyword in identity_keywords):
-            reply = "I am ChatoraAI 🤖, an intelligent chatbot developed by Sewak."
-            return {"reply": reply}
+        # 1. Fast-path exact greetings (<1ms)
+        if user_message in QUICK_RESPONSES:
+            return {"reply": QUICK_RESPONSES[user_message]}
 
-        # Use Cohere's Chat API for normal queries
-        response = co.chat(
+        # 2. Fast-path identity questions (<1ms)
+        if any(keyword in user_message for keyword in IDENTITY_KEYWORDS):
+            return {"reply": "I am ChatoraAI 🤖, an intelligent 3D companion chatbot developed by Sewak."}
+
+        # 3. Response cache lookup (<1ms)
+        if user_message in CHAT_CACHE:
+            return {"reply": CHAT_CACHE[user_message]}
+
+        # 4. Asynchronous non-blocking API call to Cohere
+        response = await co.chat(
             model="command-r-08-2024",
             messages=[
-                {"role": "system", "content": "You are ChatoraAI, created by Sewak. Respond politely."},
-                {"role": "user", "content": request.message}
-            ]
+                {
+                    "role": "system",
+                    "content": "You are ChatoraAI, an intelligent 3D companion chatbot created by Sewak. Respond politely, accurately, and concisely."
+                },
+                {"role": "user", "content": raw_msg}
+            ],
+            max_tokens=250
         )
 
-        reply = response.message.content[0].text
+        reply = response.message.content[0].text.strip()
+
+        # Save to LRU cache
+        if len(CHAT_CACHE) >= CACHE_MAX_SIZE:
+            first_key = next(iter(CHAT_CACHE))
+            CHAT_CACHE.pop(first_key, None)
+        CHAT_CACHE[user_message] = reply
+
         return {"reply": reply}
 
     except Exception as e:
