@@ -50,16 +50,33 @@ function loadVoices() {
 window.speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
 
+function stripEmojis(text) {
+  if (!text) return "";
+  try {
+    return text
+      .replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}\u{FE0F}\u{200D}]/gu, "")
+      .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{203C}\u{2049}\u{25AA}-\u{25AB}\u{25FB}-\u{25FE}]/gu, "")
+      .replace(/\s+([,.!?])/g, "$1")
+      .replace(/\s+/g, " ")
+      .trim();
+  } catch (e) {
+    return text.replace(/[\u1F600-\u1F64F\u1F300-\u1F5FF\u1F680-\u1F6FF\u2600-\u26FF\u2700-\u27BF]/g, "").trim();
+  }
+}
+
 function speakMessage(message) {
   window.speechSynthesis.cancel();
 
-  // Clean markdown / html / code
+  // Clean markdown / html / code / emojis
   let cleanText = message
     .replace(/```[\s\S]*?```/g, "")
     .replace(/`.*?`/g, "")
     .replace(/<[^>]*>/g, "")
     .replace(/\*\*|__|~~|\*/g, "")
     .replace(/\n/g, " ");
+
+  cleanText = stripEmojis(cleanText);
+  if (!cleanText) return;
 
   const isHindi = /[\u0900-\u097F]/.test(cleanText);
   let voice;
