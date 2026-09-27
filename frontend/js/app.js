@@ -270,6 +270,7 @@ async function sendMessage() {
   const message = userInput.value.trim();
   if (!message) return;
 
+  const sendTime = Date.now();
   appendMessage("You🙋", message);
   userInput.value = "";
   showTyping();
@@ -290,16 +291,17 @@ async function sendMessage() {
     const data = await response.json();
     const reply = data.reply;
 
-    removeTyping();
-    appendMessage("Bot🤖", reply);
-    
-    // Feature 1: Emotion Sentiment Classifier
-    analyzeResponseEmotion(reply);
+    const elapsedMs = Date.now() - sendTime;
+    const minThinkingMs = 900;
+    const remainingMs = Math.max(0, minThinkingMs - elapsedMs);
 
-    // Feature 2: Interactive 3D Projection Canvas Trigger
-    check3DProjections(message, reply);
-
-    speakMessage(reply);
+    setTimeout(() => {
+      removeTyping();
+      appendMessage("Bot🤖", reply);
+      analyzeResponseEmotion(reply);
+      check3DProjections(message, reply);
+      speakMessage(reply);
+    }, remainingMs);
   } catch (error) {
     removeTyping();
     appendMessage("bot", "⚠️ Error connecting to server.");
@@ -794,13 +796,28 @@ function animateAvatar() {
   pupilLeft.position.x = -0.35 + Math.sin(elapsed * 1.8) * 0.01;
   pupilRight.position.x = 0.35 + Math.sin(elapsed * 1.8 + 0.5) * 0.01;
 
-  // --- Smooth Emotion Color Lerping ---
+  // --- Smooth Emotion Color Lerping & 3D Gestures ---
   headMaterial.color.lerp(targetHeadColor, 0.06);
   headMaterial.emissive.lerp(targetEmissiveColor, 0.06);
   pupilMaterial.emissive.lerp(targetPupilColor, 0.06);
   antennaBallMat.color.lerp(targetAntennaColor, 0.06);
   antennaBallMat.emissive.lerp(targetAntennaColor, 0.06);
   ringMaterial.color.lerp(targetRingColor, 0.06);
+
+  // --- Physical Thinking Gesture (Head Tilt & Pondering Motion) ---
+  if (currentEmotion === "thinking" && !isSpeaking) {
+    head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, 0.16 + Math.sin(elapsed * 3) * 0.04, 0.08);
+    head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, -0.14 + Math.cos(elapsed * 2) * 0.03, 0.08);
+    pupilLeft.position.y = THREE.MathUtils.lerp(pupilLeft.position.y, 0.2, 0.08);
+    pupilRight.position.y = THREE.MathUtils.lerp(pupilRight.position.y, 0.2, 0.08);
+    antennaBallMat.emissiveIntensity = 1.8 + Math.sin(elapsed * 10) * 0.8;
+    ring.rotation.z = elapsed * 1.5;
+  } else if (!isSpeaking) {
+    head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, 0, 0.08);
+    head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, 0, 0.08);
+    pupilLeft.position.y = THREE.MathUtils.lerp(pupilLeft.position.y, 0.15, 0.08);
+    pupilRight.position.y = THREE.MathUtils.lerp(pupilRight.position.y, 0.15, 0.08);
+  }
 
   // --- 3D Projection Animations ---
   if (currentProjectionType === "solar_system") {
