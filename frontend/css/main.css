@@ -791,31 +791,32 @@ body.light .user-msg > div:not(.user-header) {
   font-size: 0.85rem;
 }
 
-/* Copy Buttons */
+/* Copy Buttons (Icon Only) */
 .copy-all-btn, .copy-code-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   background: rgba(0, 234, 255, 0.1);
   border: 1px solid rgba(0, 234, 255, 0.25);
   border-radius: var(--radius-sm);
   color: var(--accent-cyan);
-  font-size: 0.75rem;
-  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-normal);
 }
 
 .copy-all-btn:hover, .copy-code-btn:hover {
   background: var(--accent-cyan);
-  color: var(--text-inverse);
+  color: #090d16;
   box-shadow: 0 0 12px var(--accent-glow);
+  transform: scale(1.05);
 }
 
 .copy-success {
   background: #22c55e !important;
-  color: #000 !important;
+  color: #ffffff !important;
   border-color: #22c55e !important;
 }
 

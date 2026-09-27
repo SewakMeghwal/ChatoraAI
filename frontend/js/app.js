@@ -193,7 +193,7 @@ function appendMessage(sender, message) {
     msg.innerHTML = `
       <div class="bot-header">
         <span>Chatora AI 🤖</span>
-        <button class="copy-all-btn" title="Copy response">${copyIcon} <span>Copy</span></button>
+        <button class="copy-all-btn" title="Copy response" aria-label="Copy response">${copyIcon}</button>
       </div>
       <div class="bot-content">${parsed}</div>
     `;
@@ -208,7 +208,6 @@ function appendMessage(sender, message) {
         copyAllBtn.classList.add("copy-success");
         showToast("Copied to clipboard! ✨");
 
-        const originalHTML = copyAllBtn.innerHTML;
         copyAllBtn.innerHTML = `
           <svg xmlns="http://www.w3.org/2000/svg"
               width="14" height="14"
@@ -222,7 +221,7 @@ function appendMessage(sender, message) {
 
         setTimeout(() => {
           copyAllBtn.classList.remove("copy-success");
-          copyAllBtn.innerHTML = originalHTML;
+          copyAllBtn.innerHTML = copyIcon;
         }, 1200);
       });
     });
@@ -274,6 +273,7 @@ async function sendMessage() {
   appendMessage("You🙋", message);
   userInput.value = "";
   showTyping();
+  setAvatarEmotion("thinking");
 
   try {
     const response = await fetch(`${API_URL}/chat`, {
@@ -303,6 +303,7 @@ async function sendMessage() {
   } catch (error) {
     removeTyping();
     appendMessage("bot", "⚠️ Error connecting to server.");
+    setAvatarEmotion("neutral");
     console.error("Error:", error);
   }
 }
