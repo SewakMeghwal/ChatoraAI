@@ -105,33 +105,41 @@ function speakMessage(message) {
   function speakChunk() {
     if (!chunks || index >= chunks.length) {
       isSpeaking = false;
+      currentVisemeSequence = [];
       targetMouthOpenY = 0;
       targetMouthWidthX = 1.0;
       if (voiceBtn) voiceBtn.textContent = "🎤";
       return;
     }
 
-    const speech = new SpeechSynthesisUtterance(chunks[index]);
+    const chunkText = chunks[index];
+    const speech = new SpeechSynthesisUtterance(chunkText);
     speech.lang = isHindi ? "hi-IN" : "en-IN";
     if (voice) speech.voice = voice;
 
-    speech.rate = 1;
+    speech.rate = 1.0;
     speech.pitch = 1.1;
 
     speech.onstart = () => {
       isSpeaking = true;
-      triggerNextViseme();
+      activeSpeechText = chunkText;
+      currentVisemeSequence = textToVisemes(chunkText);
+      visemeStartTime = clock.getElapsedTime();
+      activeCharIndex = 0;
       if (voiceBtn) voiceBtn.textContent = "⏹";
     };
 
-    speech.onboundary = () => {
-      triggerNextViseme();
+    speech.onboundary = (e) => {
+      if (typeof e.charIndex === "number" && e.charIndex < currentVisemeSequence.length) {
+        activeCharIndex = e.charIndex;
+      }
     };
 
     speech.onend = () => {
       index++;
       if (!chunks || index >= chunks.length) {
         isSpeaking = false;
+        currentVisemeSequence = [];
         targetMouthOpenY = 0;
         targetMouthWidthX = 1.0;
         if (voiceBtn) voiceBtn.textContent = "🎤";
@@ -142,6 +150,7 @@ function speakMessage(message) {
 
     speech.onerror = () => {
       isSpeaking = false;
+      currentVisemeSequence = [];
       targetMouthOpenY = 0;
       targetMouthWidthX = 1.0;
       if (voiceBtn) voiceBtn.textContent = "🎤";
@@ -504,26 +513,42 @@ const pupilRight = pupilLeft.clone();
 pupilRight.position.set(0.35, 0.15, 1.04);
 robotGroup.add(pupilRight);
 
-// --- Natural Viseme & Phoneme Lip-Sync System ---
+// --- Natural Phoneme & Viseme Lip-Sync System ---
 let targetMouthOpenY = 0;
 let currentMouthOpenY = 0;
 let targetMouthWidthX = 1.0;
 let currentMouthWidthX = 1.0;
-let lastVisemeStepTime = 0;
+let currentVisemeSequence = [];
+let visemeStartTime = 0;
+let activeSpeechText = "";
+let activeCharIndex = 0;
+const CHARS_PER_SECOND = 14.5;
 
-const VISEME_SHAPES = [
-  { openY: 0.65, widthX: 0.95 },
-  { openY: 0.35, widthX: 1.22 },
-  { openY: 0.82, widthX: 0.75 },
-  { openY: 0.45, widthX: 1.05 },
-  { openY: 0.05, widthX: 0.98 },
-];
+function textToVisemes(text) {
+  const visemes = [];
+  const clean = text.toLowerCase();
 
-function triggerNextViseme() {
-  const randomIndex = Math.floor(Math.random() * VISEME_SHAPES.length);
-  const viseme = VISEME_SHAPES[randomIndex];
-  targetMouthOpenY = viseme.openY;
-  targetMouthWidthX = viseme.widthX;
+  for (let i = 0; i < clean.length; i++) {
+    const char = clean[i];
+    if (char === "a" || char === "o" || char === "å" || char === "ä") {
+      visemes.push({ openY: 0.78, widthX: 0.88 }); // Wide open / round
+    } else if (char === "e" || char === "i" || char === "y") {
+      visemes.push({ openY: 0.42, widthX: 1.32 }); // Smile / horizontal wide
+    } else if (char === "u" || char === "w" || char === "q") {
+      visemes.push({ openY: 0.35, widthX: 0.65 }); // Puckered / small O
+    } else if (char === "m" || char === "p" || char === "b") {
+      visemes.push({ openY: 0.04, widthX: 1.0 });  // Closed / lips together
+    } else if (char === "f" || char === "v") {
+      visemes.push({ openY: 0.22, widthX: 1.1 });  // Teeth on lip
+    } else if (char === " " || char === "," || char === "." || char === "!" || char === "?") {
+      visemes.push({ openY: 0.0, widthX: 1.0 });   // Pause / mouth reset
+    } else {
+      // Consonants (t, d, s, z, n, l, r, k, g, etc.)
+      visemes.push({ openY: 0.32, widthX: 1.05 });
+    }
+  }
+
+  return visemes;
 }
 
 const mouthUpper = new THREE.Mesh(new THREE.BoxGeometry(0.64, 0.05, 0.12), glassMaterial);
@@ -796,15 +821,24 @@ function animateAvatar() {
   }
   particleGeo.attributes.position.needsUpdate = true;
 
-  // --- Natural Fluid 3D Lip-Sync Animation ---
-  if (isSpeaking) {
-    if (elapsed - lastVisemeStepTime > 0.22) {
-      lastVisemeStepTime = elapsed;
-      triggerNextViseme();
+  // --- Real-Time Phoneme-Synchronized 3D Lip-Sync Animation ---
+  if (isSpeaking && currentVisemeSequence.length > 0) {
+    const elapsedSpeech = clock.getElapsedTime() - visemeStartTime;
+    const timeBasedIndex = Math.floor(elapsedSpeech * CHARS_PER_SECOND);
+    const targetIndex = Math.max(activeCharIndex, timeBasedIndex);
+
+    let targetViseme;
+    if (targetIndex < currentVisemeSequence.length) {
+      targetViseme = currentVisemeSequence[targetIndex];
+    } else {
+      targetViseme = { openY: 0.0, widthX: 1.0 };
     }
 
-    currentMouthOpenY = THREE.MathUtils.lerp(currentMouthOpenY, targetMouthOpenY, 0.22);
-    currentMouthWidthX = THREE.MathUtils.lerp(currentMouthWidthX, targetMouthWidthX, 0.22);
+    targetMouthOpenY = targetViseme.openY;
+    targetMouthWidthX = targetViseme.widthX;
+
+    currentMouthOpenY = THREE.MathUtils.lerp(currentMouthOpenY, targetMouthOpenY, 0.28);
+    currentMouthWidthX = THREE.MathUtils.lerp(currentMouthWidthX, targetMouthWidthX, 0.28);
 
     mouthUpper.position.y = -0.32 + currentMouthOpenY * 0.035;
     mouthLower.position.y = -0.37 - currentMouthOpenY * 0.14;
@@ -817,22 +851,22 @@ function animateAvatar() {
     mouthGlowCore.scale.y = Math.max(0.1, currentMouthOpenY * 2.2);
     mouthGlowCoreMaterial.opacity = 0.2 + currentMouthOpenY * 0.7;
 
-    head.rotation.x = Math.sin(elapsed * 4) * 0.04;
-    head.rotation.z = Math.cos(elapsed * 2.2) * 0.02;
+    head.rotation.x = Math.sin(elapsed * 5) * 0.03 * (currentMouthOpenY > 0.1 ? 1 : 0.2);
+    head.rotation.z = Math.cos(elapsed * 2.2) * 0.02 * (currentMouthOpenY > 0.1 ? 1 : 0.2);
     antennaBallMat.emissiveIntensity = 1 + currentMouthOpenY * 1.3;
   } else {
-    currentMouthOpenY = THREE.MathUtils.lerp(currentMouthOpenY, 0, 0.14);
-    currentMouthWidthX = THREE.MathUtils.lerp(currentMouthWidthX, 1.0, 0.14);
+    currentMouthOpenY = THREE.MathUtils.lerp(currentMouthOpenY, 0, 0.2);
+    currentMouthWidthX = THREE.MathUtils.lerp(currentMouthWidthX, 1.0, 0.2);
 
-    mouthUpper.position.y = THREE.MathUtils.lerp(mouthUpper.position.y, -0.32, 0.14);
-    mouthLower.position.y = THREE.MathUtils.lerp(mouthLower.position.y, -0.37, 0.14);
-    mouthUpper.scale.x = THREE.MathUtils.lerp(mouthUpper.scale.x, 1.0, 0.14);
-    mouthLower.scale.x = THREE.MathUtils.lerp(mouthLower.scale.x, 1.0, 0.14);
-    mouthLower.scale.y = THREE.MathUtils.lerp(mouthLower.scale.y, 1.0, 0.14);
+    mouthUpper.position.y = THREE.MathUtils.lerp(mouthUpper.position.y, -0.32, 0.2);
+    mouthLower.position.y = THREE.MathUtils.lerp(mouthLower.position.y, -0.37, 0.2);
+    mouthLower.scale.y = THREE.MathUtils.lerp(mouthLower.scale.y, 1.0, 0.2);
+    mouthUpper.scale.x = THREE.MathUtils.lerp(mouthUpper.scale.x, 1.0, 0.2);
+    mouthLower.scale.x = THREE.MathUtils.lerp(mouthLower.scale.x, 1.0, 0.2);
 
-    mouthGlowCore.scale.x = THREE.MathUtils.lerp(mouthGlowCore.scale.x, 1.0, 0.14);
-    mouthGlowCore.scale.y = THREE.MathUtils.lerp(mouthGlowCore.scale.y, 0.1, 0.14);
-    mouthGlowCoreMaterial.opacity = THREE.MathUtils.lerp(mouthGlowCoreMaterial.opacity, 0.05, 0.14);
+    mouthGlowCore.scale.x = THREE.MathUtils.lerp(mouthGlowCore.scale.x, 1.0, 0.2);
+    mouthGlowCore.scale.y = THREE.MathUtils.lerp(mouthGlowCore.scale.y, 0.1, 0.2);
+    mouthGlowCoreMaterial.opacity = THREE.MathUtils.lerp(mouthGlowCoreMaterial.opacity, 0.1, 0.2);
 
     head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, 0, 0.1);
     head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, 0, 0.1);
